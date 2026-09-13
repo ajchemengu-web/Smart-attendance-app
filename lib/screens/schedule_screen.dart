@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/student_profile.dart';
 import '../models/timetable_entry.dart';
 import '../services/api_client.dart';
+import '../services/session_expiry.dart';
 import '../services/session_store.dart';
 import 'login_screen.dart';
 
@@ -62,7 +63,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       });
     } on ApiException catch (error) {
       if (error.status == 401) {
-        _goToLogin();
+        if (!mounted) return;
+        await handleUnauthorized(context);
         return;
       }
       setState(() => _error = error.message);
@@ -80,8 +82,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Future<void> _handleSignOut() async {
-    await _sessionStore.clear();
-    _goToLogin();
+    await handleUnauthorized(context);
   }
 
   @override
