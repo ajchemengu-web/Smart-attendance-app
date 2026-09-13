@@ -47,27 +47,34 @@ void main() {
         'department': 'School of Computing',
         'course': 'BSc Computer Science',
         'year': 2,
+        'semester': 1,
       });
 
       expect(profile.studentId, 'S1');
       expect(profile.course, 'BSc Computer Science');
       expect(profile.year, 2);
+      expect(profile.semester, 1);
     });
 
-    test('handles an unclassified student (null department/course/year)', () {
-      final profile = StudentProfile.fromJson({
-        'student_id': 'S2',
-        'full_name': 'Bob Otieno',
-        'admission_number': 'AD002',
-        'department': null,
-        'course': null,
-        'year': null,
-      });
+    test(
+      'handles an unclassified student (null department/course/year/semester)',
+      () {
+        final profile = StudentProfile.fromJson({
+          'student_id': 'S2',
+          'full_name': 'Bob Otieno',
+          'admission_number': 'AD002',
+          'department': null,
+          'course': null,
+          'year': null,
+          'semester': null,
+        });
 
-      expect(profile.department, isNull);
-      expect(profile.course, isNull);
-      expect(profile.year, isNull);
-    });
+        expect(profile.department, isNull);
+        expect(profile.course, isNull);
+        expect(profile.year, isNull);
+        expect(profile.semester, isNull);
+      },
+    );
   });
 
   group('LecturerProfile.fromJson', () {
@@ -101,6 +108,7 @@ void main() {
         'course': 'BSc Computer Science',
         'year': 2,
         'department': 'School of Computing',
+        'semester': 1,
         'day_of_week': 'MONDAY',
         'start_time': '09:00',
         'end_time': '11:00',
@@ -113,14 +121,16 @@ void main() {
       expect(entry.id, 1);
       expect(entry.unitName, 'Data Structures');
       expect(entry.status, 'ON');
+      expect(entry.semester, 1);
     });
 
-    test('handles a null department (course-only timetable entry)', () {
+    test('handles a null department/semester (course-only timetable entry)', () {
       final entry = TimetableEntry.fromJson({
         'id': 2,
         'course': 'BCom',
         'year': 1,
         'department': null,
+        'semester': null,
         'day_of_week': 'TUESDAY',
         'start_time': '08:00',
         'end_time': '10:00',
@@ -131,6 +141,7 @@ void main() {
       });
 
       expect(entry.department, isNull);
+      expect(entry.semester, isNull);
       expect(entry.status, 'POSTPONED');
     });
   });

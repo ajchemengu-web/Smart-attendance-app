@@ -13,11 +13,14 @@ Phase 2) — "different app, same platform" as the web dashboards in
   other role (Guard, any Admin tier) is told to use the web
   dashboards instead — this app isn't a second door into those.
 - **My Schedule** (`lib/screens/schedule_screen.dart`, STUDENT) —
-  resolves the logged-in student's own course/year via
-  `GET /me` (Alternative_Identifier commit cb81fec), then fetches
-  their timetable via the existing `GET /timetable?course=&year=`
-  that the web Timetabling Admin dashboard already reads. Read-only,
-  same as a student's own view should be.
+  resolves the logged-in student's own department/course/year/semester
+  via `GET /me` (Alternative_Identifier commit cb81fec), then fetches
+  their timetable via the existing
+  `GET /timetable?course=&year=&semester=` that the web Timetabling
+  Admin dashboard already reads — semester is included because
+  semester 1 and semester 2 commonly run different schedules for the
+  same course & year. Read-only, same as a student's own view should
+  be.
 - **My Units** (`lib/screens/lecturer_schedule_screen.dart`,
   LECTURER) — resolves the logged-in lecturer's own profile via the
   same `GET /me` (Alternative_Identifier commit 13ace57 added the

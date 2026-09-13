@@ -7,10 +7,12 @@ import '../services/session_expiry.dart';
 import '../services/session_store.dart';
 import 'login_screen.dart';
 
-/// A student's "My Schedule" (docs/PRD.md §6): their own course/year
-/// resolved via GET /me, then their timetable via GET /timetable —
-/// the same read-only timetable data the web platform's Timetabling
-/// Admin dashboard manages, filtered down to just this student.
+/// A student's "My Schedule" (docs/PRD.md §6): their own
+/// department/course/year/semester resolved via GET /me, then their
+/// timetable via GET /timetable — the same read-only timetable data
+/// the web platform's Timetabling Admin dashboard manages, filtered
+/// down to just this student's own semester (semester 1 and semester
+/// 2 commonly run different schedules for the same course & year).
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
 
@@ -53,6 +55,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         department: profile.department,
         course: profile.course,
         year: profile.year,
+        semester: profile.semester,
       );
 
       if (!mounted) return;
@@ -123,14 +126,17 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     final profile = _profile;
 
-    if (profile == null || profile.course == null || profile.year == null) {
+    if (profile == null ||
+        profile.course == null ||
+        profile.year == null ||
+        profile.semester == null) {
       return ListView(
         children: const [
           Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'Your account isn\'t assigned to a course/year yet — ask '
-              'an admin to update your enrollment record.',
+              'Your account isn\'t assigned to a course/year/semester '
+              'yet — ask an admin to update your enrollment record.',
             ),
           ),
         ],
@@ -143,8 +149,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           Padding(
             padding: const EdgeInsets.all(24),
             child: Text(
-              'No timetable entries for ${profile.course} '
-              '(Year ${profile.year}) yet.',
+              'No timetable entries for ${profile.course} (Year '
+              '${profile.year}, Semester ${profile.semester}) yet.',
             ),
           ),
         ],

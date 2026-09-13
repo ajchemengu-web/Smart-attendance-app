@@ -101,12 +101,14 @@ class ApiClient {
     String? department,
     String? course,
     int? year,
+    int? semester,
     String? facilitator,
   }) {
     final params = <String, String>{};
     if (department != null) params['department'] = department;
     if (course != null) params['course'] = course;
     if (year != null) params['year'] = year.toString();
+    if (semester != null) params['semester'] = semester.toString();
     if (facilitator != null) params['facilitator'] = facilitator;
     final query = params.isEmpty
         ? ''

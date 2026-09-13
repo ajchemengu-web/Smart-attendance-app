@@ -145,8 +145,9 @@ class _LecturerScheduleScreenState extends State<LecturerScheduleScreen> {
         return ListTile(
           title: Text(entry.unitName),
           subtitle: Text(
-            '${entry.course} · Year ${entry.year} · ${entry.dayOfWeek} '
-            '${entry.startTime}–${entry.endTime} · ${entry.venue}',
+            '${entry.course} · Year ${entry.year} · Sem ${entry.semester ?? '—'} '
+            '· ${entry.dayOfWeek} ${entry.startTime}–${entry.endTime} · '
+            '${entry.venue}',
           ),
           trailing: Text(
             entry.status,

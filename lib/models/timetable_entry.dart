@@ -3,6 +3,7 @@ class TimetableEntry {
   final String course;
   final int year;
   final String? department;
+  final int? semester;
   final String dayOfWeek;
   final String startTime;
   final String endTime;
@@ -16,6 +17,7 @@ class TimetableEntry {
     required this.course,
     required this.year,
     required this.department,
+    required this.semester,
     required this.dayOfWeek,
     required this.startTime,
     required this.endTime,
@@ -31,6 +33,7 @@ class TimetableEntry {
       course: json['course'] as String,
       year: json['year'] as int,
       department: json['department'] as String?,
+      semester: json['semester'] as int?,
       dayOfWeek: json['day_of_week'] as String,
       startTime: json['start_time'] as String,
       endTime: json['end_time'] as String,

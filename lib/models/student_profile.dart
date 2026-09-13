@@ -5,6 +5,7 @@ class StudentProfile {
   final String? department;
   final String? course;
   final int? year;
+  final int? semester;
 
   StudentProfile({
     required this.studentId,
@@ -13,6 +14,7 @@ class StudentProfile {
     required this.department,
     required this.course,
     required this.year,
+    required this.semester,
   });
 
   factory StudentProfile.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class StudentProfile {
       department: json['department'] as String?,
       course: json['course'] as String?,
       year: json['year'] as int?,
+      semester: json['semester'] as int?,
     );
   }
 }
