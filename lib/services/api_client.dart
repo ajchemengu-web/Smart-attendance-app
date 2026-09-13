@@ -98,11 +98,13 @@ class ApiClient {
 
   Future<List<TimetableEntry>> getTimetable(
     String token, {
+    String? department,
     String? course,
     int? year,
     String? facilitator,
   }) {
     final params = <String, String>{};
+    if (department != null) params['department'] = department;
     if (course != null) params['course'] = course;
     if (year != null) params['year'] = year.toString();
     if (facilitator != null) params['facilitator'] = facilitator;

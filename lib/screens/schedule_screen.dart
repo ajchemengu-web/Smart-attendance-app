@@ -49,6 +49,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final profile = await _apiClient.getMe(token);
       final entries = await _apiClient.getTimetable(
         token,
+        department: profile.department,
         course: profile.course,
         year: profile.year,
       );
