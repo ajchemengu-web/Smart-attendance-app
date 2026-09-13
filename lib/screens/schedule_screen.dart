@@ -1,0 +1,190 @@
+import 'package:flutter/material.dart';
+
+import '../models/student_profile.dart';
+import '../models/timetable_entry.dart';
+import '../services/api_client.dart';
+import '../services/session_store.dart';
+import 'login_screen.dart';
+
+/// A student's "My Schedule" (docs/PRD.md §6): their own course/year
+/// resolved via GET /me, then their timetable via GET /timetable —
+/// the same read-only timetable data the web platform's Timetabling
+/// Admin dashboard manages, filtered down to just this student.
+class ScheduleScreen extends StatefulWidget {
+  const ScheduleScreen({super.key});
+
+  @override
+  State<ScheduleScreen> createState() => _ScheduleScreenState();
+}
+
+class _ScheduleScreenState extends State<ScheduleScreen> {
+  final _apiClient = ApiClient();
+  final _sessionStore = SessionStore();
+
+  StudentProfile? _profile;
+  List<TimetableEntry> _entries = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final token = await _sessionStore.token;
+
+    if (token == null) {
+      _goToLogin();
+      return;
+    }
+
+    try {
+      final profile = await _apiClient.getMe(token);
+      final entries = await _apiClient.getTimetable(
+        token,
+        course: profile.course,
+        year: profile.year,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _profile = profile;
+        _entries = entries;
+      });
+    } on ApiException catch (error) {
+      if (error.status == 401) {
+        _goToLogin();
+        return;
+      }
+      setState(() => _error = error.message);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _goToLogin() {
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _handleSignOut() async {
+    await _sessionStore.clear();
+    _goToLogin();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Schedule'),
+        actions: [
+          IconButton(
+            onPressed: _handleSignOut,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign out',
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: _buildBody(),
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return ListView(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(_error!, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      );
+    }
+
+    final profile = _profile;
+
+    if (profile == null || profile.course == null || profile.year == null) {
+      return ListView(
+        children: const [
+          Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Your account isn\'t assigned to a course/year yet — ask '
+              'an admin to update your enrollment record.',
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (_entries.isEmpty) {
+      return ListView(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'No timetable entries for ${profile.course} '
+              '(Year ${profile.year}) yet.',
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ListView.builder(
+      itemCount: _entries.length,
+      itemBuilder: (context, index) {
+        final entry = _entries[index];
+        return ListTile(
+          title: Text(entry.unitName),
+          subtitle: Text(
+            '${entry.dayOfWeek} ${entry.startTime}–${entry.endTime} · '
+            '${entry.venue} · ${entry.facilitator}',
+          ),
+          trailing: _StatusBadge(status: entry.status),
+        );
+      },
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  final String status;
+
+  const _StatusBadge({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    Color color;
+    switch (status) {
+      case 'ON':
+        color = Colors.green;
+        break;
+      case 'POSTPONED':
+        color = Colors.orange;
+        break;
+      default:
+        color = Colors.red;
+    }
+
+    return Text(status, style: TextStyle(color: color, fontSize: 12));
+  }
+}
