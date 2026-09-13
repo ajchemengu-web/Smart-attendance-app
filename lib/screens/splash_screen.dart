@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/session_store.dart';
+import 'lecturer_schedule_screen.dart';
 import 'login_screen.dart';
 import 'schedule_screen.dart';
 
@@ -22,14 +23,26 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _resolve() async {
-    final token = await SessionStore().token;
+    final sessionStore = SessionStore();
+    final token = await sessionStore.token;
+
+    if (token == null) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+      return;
+    }
+
+    final role = await sessionStore.role;
 
     if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (_) =>
-            token == null ? const LoginScreen() : const ScheduleScreen(),
+        builder: (_) => role == 'LECTURER'
+            ? const LecturerScheduleScreen()
+            : const ScheduleScreen(),
       ),
     );
   }

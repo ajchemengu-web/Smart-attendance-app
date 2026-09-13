@@ -8,17 +8,27 @@ Phase 2) — "different app, same platform" as the web dashboards in
 ## What's here so far
 
 - **Login** (`lib/screens/login_screen.dart`) — signs in against the
-  same `POST /login` every other Smart Gen surface uses. Only
-  STUDENT accounts proceed past sign-in right now; a LECTURER
-  account gets a "not supported yet" message (see below), and any
+  same `POST /login` every other Smart Gen surface uses. STUDENT and
+  LECTURER accounts proceed past sign-in to their own screen; any
   other role (Guard, any Admin tier) is told to use the web
   dashboards instead — this app isn't a second door into those.
-- **My Schedule** (`lib/screens/schedule_screen.dart`) — resolves the
-  logged-in student's own course/year via the backend's new
+- **My Schedule** (`lib/screens/schedule_screen.dart`, STUDENT) —
+  resolves the logged-in student's own course/year via
   `GET /me` (Alternative_Identifier commit cb81fec), then fetches
   their timetable via the existing `GET /timetable?course=&year=`
   that the web Timetabling Admin dashboard already reads. Read-only,
   same as a student's own view should be.
+- **My Units** (`lib/screens/lecturer_schedule_screen.dart`,
+  LECTURER) — resolves the logged-in lecturer's own profile via the
+  same `GET /me` (Alternative_Identifier commit 13ace57 added the
+  `lecturers` table + branch in `/me` for this), then fetches their
+  own timetable entries via `GET /timetable?facilitator=<their full
+  name>`. This is a free-text match against
+  `timetable_entries.facilitator`, not a foreign key (same
+  lightweight style as course/year/department) — an entry only shows
+  up here if the Timetabling Admin typed this lecturer's name into it
+  exactly as registered on the web platform's Lecturer Profiles
+  section (Original Admin dashboard).
 - The access token from login is kept in the platform
   keystore/keychain via `flutter_secure_storage`
   (`lib/services/session_store.dart`) — never `SharedPreferences` —
@@ -27,12 +37,6 @@ Phase 2) — "different app, same platform" as the web dashboards in
 
 ## Explicitly out of scope (for now)
 
-- **Lecturer accounts.** `docs/PRD.md` §6 wants a lecturer view too,
-  but there's no lecturer table in the backend yet (only `students`
-  carries course/year/department) — building this app's lecturer
-  screen against a guessed-at data model isn't worth it. The login
-  screen tells a lecturer account this plainly rather than showing a
-  broken or fake view.
 - **Classroom-camera attendance capture itself.** This app reads
   timetable data; it does not run recognition. The actual
   "classroom camera sees a student, logs them present" pipeline is

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../config.dart';
+import '../models/lecturer_profile.dart';
 import '../models/login_result.dart';
 import '../models/student_profile.dart';
 import '../models/timetable_entry.dart';
@@ -87,14 +88,24 @@ class ApiClient {
     );
   }
 
+  Future<LecturerProfile> getMyLecturerProfile(String token) {
+    return _get(
+      '/me',
+      token,
+      (data) => LecturerProfile.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
   Future<List<TimetableEntry>> getTimetable(
     String token, {
     String? course,
     int? year,
+    String? facilitator,
   }) {
     final params = <String, String>{};
     if (course != null) params['course'] = course;
     if (year != null) params['year'] = year.toString();
+    if (facilitator != null) params['facilitator'] = facilitator;
     final query = params.isEmpty
         ? ''
         : '?${Uri(queryParameters: params).query}';
