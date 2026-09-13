@@ -7,6 +7,7 @@ import '../models/lecturer_profile.dart';
 import '../models/login_result.dart';
 import '../models/student_profile.dart';
 import '../models/timetable_entry.dart';
+import '../models/unit.dart';
 
 /// Talks to the same FastAPI backend the web platform uses
 /// (Alternative_Identifier's src/api/main.py). Every endpoint except
@@ -34,6 +35,41 @@ class ApiClient {
       response = await http.get(
         Uri.parse('$apiBaseUrl$path'),
         headers: {'Authorization': 'Bearer $token'},
+      );
+    } catch (_) {
+      throw ApiException(0, 'Could not reach the backend API.');
+    }
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 400) {
+      throw ApiException(
+        response.statusCode,
+        data is Map && data['detail'] != null
+            ? data['detail'].toString()
+            : 'Request failed',
+      );
+    }
+
+    return parse(data);
+  }
+
+  Future<T> _patch<T>(
+    String path,
+    String token,
+    Map<String, dynamic> body,
+    T Function(dynamic) parse,
+  ) async {
+    late http.Response response;
+
+    try {
+      response = await http.patch(
+        Uri.parse('$apiBaseUrl$path'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(body),
       );
     } catch (_) {
       throw ApiException(0, 'Could not reach the backend API.');
@@ -103,6 +139,7 @@ class ApiClient {
     int? year,
     int? semester,
     String? facilitator,
+    String? lecturerId,
   }) {
     final params = <String, String>{};
     if (department != null) params['department'] = department;
@@ -110,6 +147,7 @@ class ApiClient {
     if (year != null) params['year'] = year.toString();
     if (semester != null) params['semester'] = semester.toString();
     if (facilitator != null) params['facilitator'] = facilitator;
+    if (lecturerId != null) params['lecturer_id'] = lecturerId;
     final query = params.isEmpty
         ? ''
         : '?${Uri(queryParameters: params).query}';
@@ -120,6 +158,45 @@ class ApiClient {
       (data) => (data as List)
           .map((e) => TimetableEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
+    );
+  }
+
+  Future<List<Unit>> getUnits(
+    String token, {
+    String? department,
+    bool? unclaimed,
+  }) {
+    final params = <String, String>{};
+    if (department != null) params['department'] = department;
+    if (unclaimed != null) params['unclaimed'] = unclaimed.toString();
+    final query = params.isEmpty
+        ? ''
+        : '?${Uri(queryParameters: params).query}';
+
+    return _get(
+      '/units$query',
+      token,
+      (data) => (data as List)
+          .map((e) => Unit.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Future<Unit> claimUnit(int unitId, String token) {
+    return _patch(
+      '/units/$unitId/claim',
+      token,
+      const {},
+      (data) => Unit.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  Future<Unit> unclaimUnit(int unitId, String token) {
+    return _patch(
+      '/units/$unitId/unclaim',
+      token,
+      const {},
+      (data) => Unit.fromJson(data as Map<String, dynamic>),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:smart_attendance/models/lecturer_profile.dart';
 import 'package:smart_attendance/models/login_result.dart';
 import 'package:smart_attendance/models/student_profile.dart';
 import 'package:smart_attendance/models/timetable_entry.dart';
+import 'package:smart_attendance/models/unit.dart';
 
 void main() {
   group('LoginResult.fromJson', () {
@@ -102,13 +103,16 @@ void main() {
   });
 
   group('TimetableEntry.fromJson', () {
-    test('parses a full timetable entry', () {
+    test('parses a full timetable entry referencing a claimed unit', () {
       final entry = TimetableEntry.fromJson({
         'id': 1,
+        'unit_id': 10,
+        'unit_code': 'SCO 104',
         'course': 'BSc Computer Science',
         'year': 2,
         'department': 'School of Computing',
         'semester': 1,
+        'lecturer_id': 'L1',
         'day_of_week': 'MONDAY',
         'start_time': '09:00',
         'end_time': '11:00',
@@ -119,30 +123,74 @@ void main() {
       });
 
       expect(entry.id, 1);
+      expect(entry.unitId, 10);
+      expect(entry.unitCode, 'SCO 104');
+      expect(entry.lecturerId, 'L1');
       expect(entry.unitName, 'Data Structures');
       expect(entry.status, 'ON');
       expect(entry.semester, 1);
     });
 
-    test('handles a null department/semester (course-only timetable entry)', () {
-      final entry = TimetableEntry.fromJson({
-        'id': 2,
-        'course': 'BCom',
-        'year': 1,
-        'department': null,
-        'semester': null,
-        'day_of_week': 'TUESDAY',
-        'start_time': '08:00',
-        'end_time': '10:00',
-        'unit_name': 'Accounting',
-        'facilitator': 'Dr. Mwangi',
-        'venue': 'Hall D',
-        'status': 'POSTPONED',
+    test(
+      'handles an entry for a still-unclaimed unit (null lecturer_id/facilitator)',
+      () {
+        final entry = TimetableEntry.fromJson({
+          'id': 2,
+          'unit_id': 11,
+          'unit_code': 'BCM 101',
+          'course': 'BCom',
+          'year': 1,
+          'department': null,
+          'semester': null,
+          'lecturer_id': null,
+          'day_of_week': 'TUESDAY',
+          'start_time': '08:00',
+          'end_time': '10:00',
+          'unit_name': 'Accounting',
+          'facilitator': null,
+          'venue': 'Hall D',
+          'status': 'POSTPONED',
+        });
+
+        expect(entry.department, isNull);
+        expect(entry.semester, isNull);
+        expect(entry.lecturerId, isNull);
+        expect(entry.facilitator, isNull);
+        expect(entry.status, 'POSTPONED');
+      },
+    );
+  });
+
+  group('Unit.fromJson', () {
+    test('parses a claimed unit', () {
+      final unit = Unit.fromJson({
+        'id': 10,
+        'unit_code': 'SCO 104',
+        'unit_name': 'Data Structures',
+        'department': 'School of Computing',
+        'course': 'BSc Computer Science',
+        'year': 2,
+        'semester': 1,
+        'lecturer_id': 'L1',
       });
 
-      expect(entry.department, isNull);
-      expect(entry.semester, isNull);
-      expect(entry.status, 'POSTPONED');
+      expect(unit.unitCode, 'SCO 104');
+      expect(unit.lecturerId, 'L1');
+    });
+
+    test('parses an unclaimed unit', () {
+      final unit = Unit.fromJson({
+        'id': 11,
+        'unit_code': 'BCM 101',
+        'unit_name': 'Accounting',
+        'department': null,
+        'course': 'BCom',
+        'year': 1,
+        'semester': 1,
+        'lecturer_id': null,
+      });
+
+      expect(unit.lecturerId, isNull);
     });
   });
 }

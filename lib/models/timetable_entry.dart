@@ -1,23 +1,29 @@
 class TimetableEntry {
   final int id;
+  final int? unitId;
+  final String? unitCode;
   final String course;
   final int year;
   final String? department;
   final int? semester;
+  final String? lecturerId;
   final String dayOfWeek;
   final String startTime;
   final String endTime;
   final String unitName;
-  final String facilitator;
+  final String? facilitator;
   final String venue;
   final String status;
 
   TimetableEntry({
     required this.id,
+    required this.unitId,
+    required this.unitCode,
     required this.course,
     required this.year,
     required this.department,
     required this.semester,
+    required this.lecturerId,
     required this.dayOfWeek,
     required this.startTime,
     required this.endTime,
@@ -30,15 +36,18 @@ class TimetableEntry {
   factory TimetableEntry.fromJson(Map<String, dynamic> json) {
     return TimetableEntry(
       id: json['id'] as int,
+      unitId: json['unit_id'] as int?,
+      unitCode: json['unit_code'] as String?,
       course: json['course'] as String,
       year: json['year'] as int,
       department: json['department'] as String?,
       semester: json['semester'] as int?,
+      lecturerId: json['lecturer_id'] as String?,
       dayOfWeek: json['day_of_week'] as String,
       startTime: json['start_time'] as String,
       endTime: json['end_time'] as String,
       unitName: json['unit_name'] as String,
-      facilitator: json['facilitator'] as String,
+      facilitator: json['facilitator'] as String?,
       venue: json['venue'] as String,
       status: json['status'] as String,
     );

@@ -23,15 +23,21 @@ Phase 2) — "different app, same platform" as the web dashboards in
   be.
 - **My Units** (`lib/screens/lecturer_schedule_screen.dart`,
   LECTURER) — resolves the logged-in lecturer's own profile via the
-  same `GET /me` (Alternative_Identifier commit 13ace57 added the
-  `lecturers` table + branch in `/me` for this), then fetches their
-  own timetable entries via `GET /timetable?facilitator=<their full
-  name>`. This is a free-text match against
-  `timetable_entries.facilitator`, not a foreign key (same
-  lightweight style as course/year/department) — an entry only shows
-  up here if the Timetabling Admin typed this lecturer's name into it
-  exactly as registered on the web platform's Lecturer Profiles
-  section (Original Admin dashboard).
+  same `GET /me`, then fetches their own timetable entries via
+  `GET /timetable?lecturer_id=<their own lecturer_id>`. A timetable
+  entry's lecturer is derived from the unit it references
+  (Alternative_Identifier's unit_service.py), not typed onto the
+  entry — so this is now an ID match, not a free-text name match.
+- **Register units you teach** (`lib/screens/
+  unit_registration_screen.dart`, LECTURER, reached via the icon next
+  to sign-out on My Units) — lists every unit the Timetabling Admin
+  has created and lets a lecturer claim (`PATCH /units/{id}/claim`)
+  or release (`PATCH /units/{id}/unclaim`) the ones they teach. A
+  unit already claimed by someone else shows as unavailable rather
+  than being silently overwritten. This claim, not a name typed onto
+  a timetable row, is what populates My Units above — a lecturer
+  self-registers once per unit rather than trusting the Timetabling
+  Admin to spell their name exactly right on every entry.
 - The access token from login is kept in the platform
   keystore/keychain via `flutter_secure_storage`
   (`lib/services/session_store.dart`) — never `SharedPreferences` —

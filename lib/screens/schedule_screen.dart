@@ -165,7 +165,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           title: Text(entry.unitName),
           subtitle: Text(
             '${entry.dayOfWeek} ${entry.startTime}–${entry.endTime} · '
-            '${entry.venue} · ${entry.facilitator}',
+            '${entry.venue} · ${entry.facilitator ?? "Unassigned"}',
           ),
           trailing: _StatusBadge(status: entry.status),
         );

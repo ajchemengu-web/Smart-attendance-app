@@ -6,14 +6,15 @@ import '../services/api_client.dart';
 import '../services/session_expiry.dart';
 import '../services/session_store.dart';
 import 'login_screen.dart';
+import 'unit_registration_screen.dart';
 
 /// A lecturer's "My Units" (docs/PRD.md §6): resolves their own
-/// profile via GET /me, then matches their full_name against
-/// timetable_entries.facilitator via GET /timetable?facilitator= —
-/// a free-text match, not a foreign key (see this repo's README and
-/// Alternative_Identifier's timetable_service.py), so an entry only
-/// shows up here if the Timetabling Admin typed this lecturer's name
-/// into it exactly as it's registered.
+/// profile via GET /me, then fetches their timetable via
+/// GET /timetable?lecturer_id= — the lecturer's own linked
+/// lecturer_id, matched against whichever units they've
+/// self-registered (see unit_registration_screen.dart and
+/// Alternative_Identifier's unit_service.py). Replaces the old
+/// free-text facilitator-name match, which broke silently on a typo.
 class LecturerScheduleScreen extends StatefulWidget {
   const LecturerScheduleScreen({super.key});
 
@@ -54,7 +55,7 @@ class _LecturerScheduleScreenState extends State<LecturerScheduleScreen> {
       final profile = await _apiClient.getMyLecturerProfile(token);
       final entries = await _apiClient.getTimetable(
         token,
-        facilitator: profile.fullName,
+        lecturerId: profile.lecturerId,
       );
 
       if (!mounted) return;
@@ -87,12 +88,32 @@ class _LecturerScheduleScreenState extends State<LecturerScheduleScreen> {
     await handleUnauthorized(context);
   }
 
+  Future<void> _openRegistration() async {
+    final profile = _profile;
+    if (profile == null) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => UnitRegistrationScreen(profile: profile),
+      ),
+    );
+
+    // Registering/releasing a unit changes what this screen's own
+    // timetable fetch should return, so refresh on return.
+    _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Units'),
         actions: [
+          IconButton(
+            onPressed: _profile == null ? null : _openRegistration,
+            icon: const Icon(Icons.add_task),
+            tooltip: 'Register units you teach',
+          ),
           IconButton(
             onPressed: _handleSignOut,
             icon: const Icon(Icons.logout),
@@ -130,8 +151,8 @@ class _LecturerScheduleScreenState extends State<LecturerScheduleScreen> {
             padding: const EdgeInsets.all(24),
             child: Text(
               'No timetable entries found for ${_profile?.fullName ?? 'you'} '
-              'yet — make sure the Timetabling Admin entered your name '
-              'exactly as registered.',
+              'yet — tap the register icon above to claim the units you '
+              'teach, or ask the Timetabling Admin to assign them to you.',
             ),
           ),
         ],
