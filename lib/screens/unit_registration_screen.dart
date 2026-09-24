@@ -8,7 +8,7 @@ import '../services/session_store.dart';
 
 /// Lets a lecturer self-register the units they teach (docs/PRD.md
 /// §6, §8): claiming a unit here is what sets its lecturer_id, which
-/// is what LecturerScheduleScreen's own timetable fetch then matches
+/// is what LecturerHomeShell's own timetable fetch then matches
 /// against — replacing the old design where a Timetabling Admin had
 /// to type this lecturer's name onto every entry by hand.
 class UnitRegistrationScreen extends StatefulWidget {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../services/session_store.dart';
 import 'home/home_shell.dart';
-import 'lecturer_schedule_screen.dart';
+import 'home/lecturer_home_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -48,7 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => result.role == 'LECTURER'
-              ? const LecturerScheduleScreen()
+              ? const LecturerHomeShell()
               : const HomeShell(),
         ),
       );
