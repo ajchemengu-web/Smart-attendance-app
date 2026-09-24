@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:smart_attendance/models/face_enroll_result.dart';
 import 'package:smart_attendance/models/lecturer_profile.dart';
 import 'package:smart_attendance/models/login_result.dart';
 import 'package:smart_attendance/models/student_profile.dart';
@@ -49,12 +50,14 @@ void main() {
         'course': 'BSc Computer Science',
         'year': 2,
         'semester': 1,
+        'face_enrolled': true,
       });
 
       expect(profile.studentId, 'S1');
       expect(profile.course, 'BSc Computer Science');
       expect(profile.year, 2);
       expect(profile.semester, 1);
+      expect(profile.faceEnrolled, isTrue);
     });
 
     test(
@@ -68,14 +71,59 @@ void main() {
           'course': null,
           'year': null,
           'semester': null,
+          'face_enrolled': false,
         });
 
         expect(profile.department, isNull);
         expect(profile.course, isNull);
         expect(profile.year, isNull);
         expect(profile.semester, isNull);
+        expect(profile.faceEnrolled, isFalse);
       },
     );
+
+    test('defaults faceEnrolled to false when the key is missing', () {
+      final profile = StudentProfile.fromJson({
+        'student_id': 'S3',
+        'full_name': 'Carol Njeri',
+        'admission_number': 'AD003',
+        'department': null,
+        'course': null,
+        'year': null,
+        'semester': null,
+      });
+
+      expect(profile.faceEnrolled, isFalse);
+    });
+  });
+
+  group('FaceEnrollResult.fromJson', () {
+    test('parses a successful enrollment result', () {
+      final result = FaceEnrollResult.fromJson({
+        'student_id': 'S1',
+        'full_name': 'Alice Wanjiru',
+        'samples_used': 2,
+        'samples_skipped': 1,
+        'average_liveness_score': 0.82,
+      });
+
+      expect(result.studentId, 'S1');
+      expect(result.samplesUsed, 2);
+      expect(result.samplesSkipped, 1);
+      expect(result.averageLivenessScore, closeTo(0.82, 0.0001));
+    });
+
+    test('handles a null average_liveness_score', () {
+      final result = FaceEnrollResult.fromJson({
+        'student_id': 'S1',
+        'full_name': 'Alice Wanjiru',
+        'samples_used': 1,
+        'samples_skipped': 0,
+        'average_liveness_score': null,
+      });
+
+      expect(result.averageLivenessScore, isNull);
+    });
   });
 
   group('LecturerProfile.fromJson', () {

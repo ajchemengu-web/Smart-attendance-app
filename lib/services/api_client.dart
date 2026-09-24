@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
 import '../config.dart';
+import '../models/face_enroll_result.dart';
 import '../models/lecturer_profile.dart';
 import '../models/login_result.dart';
 import '../models/student_profile.dart';
@@ -130,6 +132,54 @@ class ApiClient {
       token,
       (data) => LecturerProfile.fromJson(data as Map<String, dynamic>),
     );
+  }
+
+  /// Self-service counterpart to the admin-run enrollment on the web
+  /// platform — resolves the caller's own student record server-side
+  /// (Alternative_Identifier's enrollment_service.enroll_own_face)
+  /// and requires every photo to pass the liveness check there;
+  /// there's no admin present here to catch a spoofed photo.
+  Future<FaceEnrollResult> enrollMyFace(
+    List<Uint8List> photos,
+    String token,
+  ) async {
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('$apiBaseUrl/me/enroll-face'),
+    );
+    request.headers['Authorization'] = 'Bearer $token';
+
+    for (var i = 0; i < photos.length; i++) {
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'files',
+          photos[i],
+          filename: 'capture_$i.jpg',
+        ),
+      );
+    }
+
+    late http.StreamedResponse streamed;
+
+    try {
+      streamed = await request.send();
+    } catch (_) {
+      throw ApiException(0, 'Could not reach the backend API.');
+    }
+
+    final response = await http.Response.fromStream(streamed);
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 400) {
+      throw ApiException(
+        response.statusCode,
+        data is Map && data['detail'] != null
+            ? data['detail'].toString()
+            : 'Could not enroll your face.',
+      );
+    }
+
+    return FaceEnrollResult.fromJson(data as Map<String, dynamic>);
   }
 
   Future<List<TimetableEntry>> getTimetable(

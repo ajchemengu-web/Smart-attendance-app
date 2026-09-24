@@ -6,6 +6,7 @@ class StudentProfile {
   final String? course;
   final int? year;
   final int? semester;
+  final bool faceEnrolled;
 
   StudentProfile({
     required this.studentId,
@@ -15,6 +16,7 @@ class StudentProfile {
     required this.course,
     required this.year,
     required this.semester,
+    required this.faceEnrolled,
   });
 
   factory StudentProfile.fromJson(Map<String, dynamic> json) {
@@ -26,6 +28,7 @@ class StudentProfile {
       course: json['course'] as String?,
       year: json['year'] as int?,
       semester: json['semester'] as int?,
+      faceEnrolled: json['face_enrolled'] as bool? ?? false,
     );
   }
 }

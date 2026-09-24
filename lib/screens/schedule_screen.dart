@@ -5,6 +5,7 @@ import '../models/timetable_entry.dart';
 import '../services/api_client.dart';
 import '../services/session_expiry.dart';
 import '../services/session_store.dart';
+import 'face_enrollment_screen.dart';
 import 'login_screen.dart';
 
 /// A student's "My Schedule" (docs/PRD.md §6): their own
@@ -88,12 +89,31 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     await handleUnauthorized(context);
   }
 
+  Future<void> _goToFaceEnrollment() async {
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const FaceEnrollmentScreen()));
+    // Refresh so a newly-enrolled face's status shows immediately.
+    if (mounted) _load();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Schedule'),
         actions: [
+          IconButton(
+            onPressed: _goToFaceEnrollment,
+            icon: Icon(
+              _profile?.faceEnrolled == true
+                  ? Icons.face_retouching_natural
+                  : Icons.face,
+            ),
+            tooltip: _profile?.faceEnrolled == true
+                ? 'Re-enroll your face'
+                : 'Enroll your face',
+          ),
           IconButton(
             onPressed: _handleSignOut,
             icon: const Icon(Icons.logout),
@@ -103,7 +123,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
       body: RefreshIndicator(
         onRefresh: _load,
-        child: _buildBody(),
+        child: Column(
+          children: [
+            if (!_loading && _profile != null && !_profile!.faceEnrolled)
+              _FaceEnrollmentBanner(onTap: _goToFaceEnrollment),
+            Expanded(child: _buildBody()),
+          ],
+        ),
       ),
     );
   }
@@ -194,5 +220,37 @@ class _StatusBadge extends StatelessWidget {
     }
 
     return Text(status, style: TextStyle(color: color, fontSize: 12));
+  }
+}
+
+class _FaceEnrollmentBanner extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _FaceEnrollmentBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.primaryContainer,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              const Icon(Icons.face),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Your face isn\'t enrolled yet — tap to set it up. '
+                  'This is what lets you be recognized at checkpoints.',
+                ),
+              ),
+              const Icon(Icons.chevron_right),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
