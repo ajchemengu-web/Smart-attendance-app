@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../services/session_store.dart';
+import 'home/home_shell.dart';
 import 'lecturer_schedule_screen.dart';
 import 'login_screen.dart';
-import 'schedule_screen.dart';
 
 /// Decides where to land based on whether a session is already
 /// stored on-device — mirrors the web platform's proxy.ts bouncing
@@ -42,7 +42,7 @@ class _SplashScreenState extends State<SplashScreen> {
       MaterialPageRoute(
         builder: (_) => role == 'LECTURER'
             ? const LecturerScheduleScreen()
-            : const ScheduleScreen(),
+            : const HomeShell(),
       ),
     );
   }

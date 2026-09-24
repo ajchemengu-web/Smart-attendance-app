@@ -1,27 +1,35 @@
 import 'package:flutter/material.dart';
 
-import '../models/student_profile.dart';
-import '../models/timetable_entry.dart';
-import '../services/api_client.dart';
-import '../services/session_expiry.dart';
-import '../services/session_store.dart';
-import 'face_enrollment_screen.dart';
-import 'login_screen.dart';
+import '../../models/student_profile.dart';
+import '../../models/timetable_entry.dart';
+import '../../services/api_client.dart';
+import '../../services/session_expiry.dart';
+import '../../services/session_store.dart';
+import '../face_enrollment_screen.dart';
+import '../login_screen.dart';
+import 'alerts_tab.dart';
+import 'history_tab.dart';
+import 'intraday_tab.dart';
+import 'pigeonhole_tab.dart';
+import 'profile_tab.dart';
+import 'schedule_tab.dart';
 
-/// A student's "My Schedule" (docs/PRD.md §6): their own
-/// department/course/year/semester resolved via GET /me, then their
-/// timetable via GET /timetable — the same read-only timetable data
-/// the web platform's Timetabling Admin dashboard manages, filtered
-/// down to just this student's own semester (semester 1 and semester
-/// 2 commonly run different schedules for the same course & year).
-class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key});
+/// The student app's navigation shell (docs/PRD.md §7.3): a top nav
+/// bar (Schedule / Intraday / Pigeonhole) and a bottom nav bar
+/// (Alerts / History / Profile) — six sections total, arranged as
+/// two groups of three rather than flat top-level tabs. Fetches
+/// profile + timetable once here rather than per-tab, since Schedule
+/// and Intraday both read the same data.
+class HomeShell extends StatefulWidget {
+  const HomeShell({super.key});
 
   @override
-  State<ScheduleScreen> createState() => _ScheduleScreenState();
+  State<HomeShell> createState() => _HomeShellState();
 }
 
-class _ScheduleScreenState extends State<ScheduleScreen> {
+const _topLabels = ['Schedule', 'Intraday', 'Pigeonhole'];
+
+class _HomeShellState extends State<HomeShell> {
   final _apiClient = ApiClient();
   final _sessionStore = SessionStore();
 
@@ -29,6 +37,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   List<TimetableEntry> _entries = [];
   bool _loading = true;
   String? _error;
+
+  // 0-2 = the top nav bar's sections, 3-5 = the bottom nav bar's.
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -93,15 +104,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const FaceEnrollmentScreen()));
-    // Refresh so a newly-enrolled face's status shows immediately.
     if (mounted) _load();
   }
 
   @override
   Widget build(BuildContext context) {
+    final onTopTab = _selectedIndex <= 2;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Schedule'),
+        title: Text(
+          onTopTab ? _topLabels[_selectedIndex] : _bottomTitle(_selectedIndex),
+        ),
         actions: [
           IconButton(
             onPressed: _goToFaceEnrollment,
@@ -121,17 +135,62 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _load,
-        child: Column(
-          children: [
-            if (!_loading && _profile != null && !_profile!.faceEnrolled)
-              _FaceEnrollmentBanner(onTap: _goToFaceEnrollment),
-            Expanded(child: _buildBody()),
-          ],
-        ),
+      body: Column(
+        children: [
+          if (!_loading && _profile != null && !_profile!.faceEnrolled)
+            _FaceEnrollmentBanner(onTap: _goToFaceEnrollment),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('Schedule')),
+                ButtonSegment(value: 1, label: Text('Intraday')),
+                ButtonSegment(value: 2, label: Text('Pigeonhole')),
+              ],
+              selected: onTopTab ? {_selectedIndex} : const {},
+              emptySelectionAllowed: true,
+              onSelectionChanged: (selection) {
+                if (selection.isEmpty) return;
+                setState(() => _selectedIndex = selection.first);
+              },
+            ),
+          ),
+          Expanded(
+            child: RefreshIndicator(onRefresh: _load, child: _buildBody()),
+          ),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: onTopTab ? 0 : _selectedIndex - 3,
+        onDestinationSelected: (index) =>
+            setState(() => _selectedIndex = 3 + index),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.notifications_none),
+            label: 'Alerts',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.history),
+            label: 'History',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
+  }
+
+  String _bottomTitle(int index) {
+    switch (index) {
+      case 3:
+        return 'Alerts';
+      case 4:
+        return 'History';
+      default:
+        return 'Profile';
+    }
   }
 
   Widget _buildBody() {
@@ -150,76 +209,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       );
     }
 
-    final profile = _profile;
-
-    if (profile == null ||
-        profile.course == null ||
-        profile.year == null ||
-        profile.semester == null) {
-      return ListView(
-        children: const [
-          Padding(
-            padding: EdgeInsets.all(24),
-            child: Text(
-              'Your account isn\'t assigned to a course/year/semester '
-              'yet — ask an admin to update your enrollment record.',
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (_entries.isEmpty) {
-      return ListView(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              'No timetable entries for ${profile.course} (Year '
-              '${profile.year}, Semester ${profile.semester}) yet.',
-            ),
-          ),
-        ],
-      );
-    }
-
-    return ListView.builder(
-      itemCount: _entries.length,
-      itemBuilder: (context, index) {
-        final entry = _entries[index];
-        return ListTile(
-          title: Text(entry.unitName),
-          subtitle: Text(
-            '${entry.dayOfWeek} ${entry.startTime}–${entry.endTime} · '
-            '${entry.venue} · ${entry.facilitator ?? "Unassigned"}',
-          ),
-          trailing: _StatusBadge(status: entry.status),
-        );
-      },
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  final String status;
-
-  const _StatusBadge({required this.status});
-
-  @override
-  Widget build(BuildContext context) {
-    Color color;
-    switch (status) {
-      case 'ON':
-        color = Colors.green;
-        break;
-      case 'POSTPONED':
-        color = Colors.orange;
-        break;
+    switch (_selectedIndex) {
+      case 0:
+        return ScheduleTab(profile: _profile, entries: _entries);
+      case 1:
+        return IntradayTab(entries: _entries);
+      case 2:
+        return const PigeonholeTab();
+      case 3:
+        return const AlertsTab();
+      case 4:
+        return const HistoryTab();
       default:
-        color = Colors.red;
+        return ProfileTab(profile: _profile, onEnrollFace: _goToFaceEnrollment);
     }
-
-    return Text(status, style: TextStyle(color: color, fontSize: 12));
   }
 }
 
