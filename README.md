@@ -99,3 +99,32 @@ flutter pub get
 flutter analyze
 flutter test
 ```
+
+## Deployment (web build)
+
+The web build (`flutter build web`) is a static site, so it deploys
+two ways:
+
+- **GitHub Pages** (`.github/workflows/deploy-web.yml`) — builds on
+  every push to `main` and deploys to `https://<owner>.github.io/
+  <repo>/`, so it passes `--base-href=/<repo>/`.
+- **Vercel** (`vercel.json` + `vercel-build.sh`) — same platform
+  `Smart-gen.com` already deploys on. Vercel has no native Flutter
+  builder, so `vercel-build.sh` downloads a pinned Flutter SDK
+  (matching `pubspec.yaml`'s `sdk: ^3.13.3` constraint) before
+  building; `vercel.json` points Vercel at that script and at
+  `build/web` as the output directory. Served from the project's own
+  domain root, so — unlike the GitHub Pages build — no `--base-href`
+  override is passed.
+
+  To connect this repo: in the Vercel dashboard, **Add New… →
+  Project**, import this repository, and set the **Root Directory**
+  if this app doesn't live at the repo root. Framework Preset can be
+  left as "Other" — `vercel.json` supplies the build/install/output
+  settings. Then add an **API_BASE_URL** environment variable
+  (Project Settings → Environment Variables) pointing at the FastAPI
+  backend's reachable URL, same convention as the `API_BASE_URL`
+  repo Actions variable the GitHub Pages/APK workflows already use —
+  see `lib/config.dart`. Without it, the deployed build falls back to
+  `http://localhost:8000`, which only works from the machine actually
+  running the backend.
