@@ -4,10 +4,13 @@ import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 
 import '../config.dart';
+import '../models/attendance_notification.dart';
+import '../models/attendance_record.dart';
 import '../models/face_enroll_result.dart';
 import '../models/lecturer_profile.dart';
 import '../models/login_result.dart';
 import '../models/student_profile.dart';
+import '../models/taught_session.dart';
 import '../models/timetable_entry.dart';
 import '../models/unit.dart';
 
@@ -247,6 +250,44 @@ class ApiClient {
       token,
       const {},
       (data) => Unit.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  Future<List<AttendanceNotification>> getMyNotifications(String token) {
+    return _get(
+      '/me/notifications',
+      token,
+      (data) => (data as List)
+          .map(
+            (e) => AttendanceNotification.fromJson(e as Map<String, dynamic>),
+          )
+          .toList(),
+    );
+  }
+
+  Future<void> markNotificationRead(int notificationId, String token) {
+    return _patch('/me/notifications/$notificationId/read', token, const {}, (
+      _,
+    ) {});
+  }
+
+  Future<List<AttendanceRecord>> getMyAttendance(String token) {
+    return _get(
+      '/me/attendance',
+      token,
+      (data) => (data as List)
+          .map((e) => AttendanceRecord.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Future<List<TaughtSession>> getMyTaughtAttendance(String token) {
+    return _get(
+      '/lecturers/me/attendance',
+      token,
+      (data) => (data as List)
+          .map((e) => TaughtSession.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }

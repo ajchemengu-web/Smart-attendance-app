@@ -1,9 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:smart_attendance/models/attendance_notification.dart';
+import 'package:smart_attendance/models/attendance_record.dart';
 import 'package:smart_attendance/models/face_enroll_result.dart';
 import 'package:smart_attendance/models/lecturer_profile.dart';
 import 'package:smart_attendance/models/login_result.dart';
 import 'package:smart_attendance/models/student_profile.dart';
+import 'package:smart_attendance/models/taught_session.dart';
 import 'package:smart_attendance/models/timetable_entry.dart';
 import 'package:smart_attendance/models/unit.dart';
 
@@ -239,6 +242,104 @@ void main() {
       });
 
       expect(unit.lecturerId, isNull);
+    });
+  });
+
+  group('AttendanceNotification.fromJson', () {
+    test('parses an unread ATTENDED notification', () {
+      final notification = AttendanceNotification.fromJson({
+        'id': 1,
+        'kind': 'ATTENDED',
+        'unit_name': 'Data Structures',
+        'facilitator': 'Dr. Otieno',
+        'created_at': '2026-09-30 10:40:00',
+        'read_at': null,
+      });
+
+      expect(notification.kind, 'ATTENDED');
+      expect(notification.isRead, isFalse);
+    });
+
+    test('copyWithRead marks it read without touching other fields', () {
+      final notification = AttendanceNotification.fromJson({
+        'id': 2,
+        'kind': 'MISSED',
+        'unit_name': 'Accounting',
+        'facilitator': null,
+        'created_at': '2026-09-30 10:40:00',
+        'read_at': null,
+      });
+
+      final read = notification.copyWithRead('2026-09-30T11:00:00');
+
+      expect(read.isRead, isTrue);
+      expect(read.kind, 'MISSED');
+      expect(read.id, 2);
+    });
+  });
+
+  group('AttendanceRecord.fromJson', () {
+    test('parses a PRESENT record', () {
+      final record = AttendanceRecord.fromJson({
+        'status': 'PRESENT',
+        'recognized_at': '2026-09-30 09:52:00',
+        'session_date': '2026-09-30',
+        'unit_name': 'Data Structures',
+        'facilitator': 'Dr. Otieno',
+        'start_time': '10:00',
+        'end_time': '11:00',
+      });
+
+      expect(record.status, 'PRESENT');
+      expect(record.recognizedAt, isNotNull);
+    });
+
+    test('parses an ABSENT record with no recognized_at', () {
+      final record = AttendanceRecord.fromJson({
+        'status': 'ABSENT',
+        'recognized_at': null,
+        'session_date': '2026-09-30',
+        'unit_name': 'Data Structures',
+        'facilitator': null,
+        'start_time': '10:00',
+        'end_time': '11:00',
+      });
+
+      expect(record.status, 'ABSENT');
+      expect(record.recognizedAt, isNull);
+      expect(record.facilitator, isNull);
+    });
+  });
+
+  group('TaughtSession.fromJson', () {
+    test('parses a submitted session with its full roll', () {
+      final session = TaughtSession.fromJson({
+        'class_session_id': 1,
+        'session_date': '2026-09-30',
+        'status': 'SUBMITTED',
+        'unit_name': 'Data Structures',
+        'start_time': '10:00',
+        'end_time': '11:00',
+        'venue': 'Room 204',
+        'roll': [
+          {
+            'student_id': 'STU-1',
+            'full_name': 'Alice Example',
+            'status': 'PRESENT',
+            'recognized_at': '2026-09-30 09:52:00',
+          },
+          {
+            'student_id': 'STU-2',
+            'full_name': 'Bob Example',
+            'status': 'ABSENT',
+            'recognized_at': null,
+          },
+        ],
+      });
+
+      expect(session.roll, hasLength(2));
+      expect(session.roll[0].status, 'PRESENT');
+      expect(session.roll[1].recognizedAt, isNull);
     });
   });
 }

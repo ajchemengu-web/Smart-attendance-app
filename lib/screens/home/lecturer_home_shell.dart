@@ -7,7 +7,7 @@ import '../../services/session_expiry.dart';
 import '../../services/session_store.dart';
 import '../login_screen.dart';
 import '../unit_registration_screen.dart';
-import 'alerts_tab.dart';
+import 'lecturer_alerts_tab.dart';
 import 'lecturer_history_tab.dart';
 import 'lecturer_intraday_tab.dart';
 import 'lecturer_profile_tab.dart';
@@ -18,10 +18,11 @@ import 'pigeonhole_tab.dart';
 /// the student's HomeShell (docs/PRD.md §7.3: "Shared app shell
 /// ('SmartAttendance'), same platform, role-specific content"): a top
 /// nav bar (Schedule / Intraday / Pigeonhole) and a bottom nav bar
-/// (Alerts / History / Profile). Pigeonhole and Alerts are
-/// role-agnostic per the PRD table, so they reuse the student tabs
-/// as-is; Schedule, Intraday, History, and Profile carry
-/// lecturer-specific content and data.
+/// (Alerts / History / Profile). Pigeonhole's content is genuinely
+/// role-agnostic so it reuses the student tab as-is; every other tab
+/// carries lecturer-specific content — including Alerts, which looks
+/// the same as the student one but can't reuse it, since
+/// GET /me/notifications is STUDENT-only (see lecturer_alerts_tab.dart).
 class LecturerHomeShell extends StatefulWidget {
   const LecturerHomeShell({super.key});
 
@@ -216,7 +217,7 @@ class _LecturerHomeShellState extends State<LecturerHomeShell> {
       case 2:
         return const PigeonholeTab();
       case 3:
-        return const AlertsTab();
+        return const LecturerAlertsTab();
       case 4:
         return const LecturerHistoryTab();
       default:
