@@ -13,11 +13,13 @@ import '../../models/student_profile.dart';
 class ProfileTab extends StatelessWidget {
   final StudentProfile? profile;
   final VoidCallback onEnrollFace;
+  final VoidCallback onWithdrawConsent;
 
   const ProfileTab({
     super.key,
     required this.profile,
     required this.onEnrollFace,
+    required this.onWithdrawConsent,
   });
 
   @override
@@ -71,6 +73,22 @@ class ProfileTab extends StatelessWidget {
             child: Text(profile.faceEnrolled ? 'Re-enroll' : 'Enroll'),
           ),
         ),
+        if (profile.faceEnrolled)
+          ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text('Withdraw consent'),
+            subtitle: const Text(
+              'Stops facial recognition for you and deletes your face '
+              'data. You can enroll again later.',
+            ),
+            trailing: TextButton(
+              onPressed: onWithdrawConsent,
+              child: Text(
+                'Withdraw',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+          ),
         const Divider(),
         const ListTile(
           leading: Icon(Icons.home_outlined),

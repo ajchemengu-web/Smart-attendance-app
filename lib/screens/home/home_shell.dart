@@ -100,6 +100,72 @@ class _HomeShellState extends State<HomeShell> {
     await handleUnauthorized(context);
   }
 
+  /// Withdrawing isn't a soft toggle — it deletes the face template —
+  /// so it's confirmed first, says exactly what it does, and reports
+  /// what actually happened.
+  Future<void> _withdrawConsent() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Withdraw consent?'),
+        content: const Text(
+          'Your face data will be deleted and you will no longer be '
+          'recognised at checkpoints or in class attendance. You can '
+          'enroll again later.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Withdraw and delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    final token = await _sessionStore.token;
+
+    if (token == null) {
+      _goToLogin();
+      return;
+    }
+
+    try {
+      final result = await _apiClient.withdrawConsent(token);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result.faceDataDeleted
+                ? 'Consent withdrawn and your face data deleted.'
+                : 'Consent withdrawn.',
+          ),
+        ),
+      );
+
+      _load();
+    } on ApiException catch (error) {
+      if (error.status == 401) {
+        if (!mounted) return;
+        await handleUnauthorized(context);
+        return;
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
+    }
+  }
+
   Future<void> _goToFaceEnrollment() async {
     await Navigator.of(
       context,
@@ -221,7 +287,11 @@ class _HomeShellState extends State<HomeShell> {
       case 4:
         return const HistoryTab();
       default:
-        return ProfileTab(profile: _profile, onEnrollFace: _goToFaceEnrollment);
+        return ProfileTab(
+          profile: _profile,
+          onEnrollFace: _goToFaceEnrollment,
+          onWithdrawConsent: _withdrawConsent,
+        );
     }
   }
 }

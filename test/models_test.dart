@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:smart_attendance/models/attendance_notification.dart';
 import 'package:smart_attendance/models/attendance_record.dart';
+import 'package:smart_attendance/models/consent.dart';
 import 'package:smart_attendance/models/face_enroll_result.dart';
 import 'package:smart_attendance/models/lecturer_profile.dart';
 import 'package:smart_attendance/models/login_result.dart';
@@ -340,6 +341,74 @@ void main() {
       expect(session.roll, hasLength(2));
       expect(session.roll[0].status, 'PRESENT');
       expect(session.roll[1].recognizedAt, isNull);
+    });
+  });
+
+  group('ConsentInfo.fromJson', () {
+    test('parses the notice and an inactive status', () {
+      final info = ConsentInfo.fromJson({
+        'notice': {
+          'version': '2026-09-v1',
+          'title': 'Facial recognition consent',
+          'controller': 'Example University',
+          'contact': 'dpo@example.ac.ke',
+          'sections': [
+            {'heading': 'What we collect', 'body': 'A face template.'},
+            {'heading': 'Your choice', 'body': 'You do not have to agree.'},
+          ],
+        },
+        'status': {
+          'consent_active': false,
+          'notice_version': null,
+          'granted_at': null,
+          'channel': null,
+          'needs_reconsent': false,
+          'current_notice_version': '2026-09-v1',
+        },
+      });
+
+      expect(info.notice.version, '2026-09-v1');
+      expect(info.notice.sections, hasLength(2));
+      expect(info.notice.sections[1].heading, 'Your choice');
+      expect(info.status.consentActive, isFalse);
+      expect(info.status.needsReconsent, isFalse);
+      expect(info.status.grantedAt, isNull);
+    });
+
+    test('flags a consent that needs re-asking after the notice changed', () {
+      final status = ConsentStatus.fromJson({
+        'consent_active': false,
+        'granted_at': null,
+        'needs_reconsent': true,
+        'current_notice_version': '2026-12-v2',
+      });
+
+      expect(status.needsReconsent, isTrue);
+      expect(status.currentNoticeVersion, '2026-12-v2');
+    });
+
+    test('defaults needsReconsent to false when the key is missing', () {
+      final status = ConsentStatus.fromJson({
+        'consent_active': true,
+        'granted_at': '2026-09-29 10:00:00',
+        'current_notice_version': '2026-09-v1',
+      });
+
+      expect(status.consentActive, isTrue);
+      expect(status.needsReconsent, isFalse);
+    });
+  });
+
+  group('ConsentWithdrawResult.fromJson', () {
+    test('reports that the face data was deleted', () {
+      final result = ConsentWithdrawResult.fromJson({
+        'student_id': 'STU-1',
+        'consent_withdrawn': true,
+        'face_data_deleted': true,
+      });
+
+      expect(result.consentWithdrawn, isTrue);
+      expect(result.faceDataDeleted, isTrue);
     });
   });
 }

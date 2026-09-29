@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../services/session_expiry.dart';
 import '../services/session_store.dart';
+import 'consent_screen.dart';
 
 /// Self-service facial enrollment: the student captures their own
 /// live photos (not a file upload) from their own logged-in session,
@@ -14,6 +15,11 @@ import '../services/session_store.dart';
 /// to catch a spoofed photo the way there is for admin-run
 /// enrollment. Encourages a few shots from slightly different
 /// angles/positions rather than just one.
+///
+/// Consent comes first: before this screen so much as asks for camera
+/// permission, it checks the student has agreed to the current consent
+/// notice and, if not, shows it (consent_screen.dart). Declining just
+/// backs out — nothing is captured or sent.
 class FaceEnrollmentScreen extends StatefulWidget {
   const FaceEnrollmentScreen({super.key});
 
@@ -39,7 +45,66 @@ class _FaceEnrollmentScreenState extends State<FaceEnrollmentScreen> {
   @override
   void initState() {
     super.initState();
-    _initCamera();
+    _begin();
+  }
+
+  Future<void> _begin() async {
+    setState(() {
+      _initializing = true;
+      _error = null;
+    });
+
+    final consented = await _ensureConsent();
+
+    if (!mounted) return;
+
+    if (consented == false) {
+      // Declined (or backed out of) the consent notice.
+      Navigator.of(context).pop();
+      return;
+    }
+
+    if (consented == null) {
+      // Couldn't check consent at all; _ensureConsent already set _error.
+      setState(() => _initializing = false);
+      return;
+    }
+
+    await _initCamera();
+  }
+
+  /// true = consent is on record for the current notice, false = the
+  /// student declined it, null = the check itself failed (network etc.).
+  Future<bool?> _ensureConsent() async {
+    final token = await _sessionStore.token;
+
+    if (token == null) {
+      if (mounted) await handleUnauthorized(context);
+      return false;
+    }
+
+    try {
+      final info = await _apiClient.getConsent(token);
+
+      if (info.status.consentActive) return true;
+
+      if (!mounted) return false;
+
+      final agreed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute(builder: (_) => ConsentScreen(info: info)),
+      );
+
+      return agreed == true;
+    } on ApiException catch (error) {
+      if (error.status == 401) {
+        if (mounted) await handleUnauthorized(context);
+        return false;
+      }
+
+      if (mounted) setState(() => _error = error.message);
+
+      return null;
+    }
   }
 
   @override
@@ -310,7 +375,7 @@ class _FaceEnrollmentScreenState extends State<FaceEnrollmentScreen> {
         if (_error != null)
           Text(_error!, style: const TextStyle(color: Colors.red)),
         const SizedBox(height: 16),
-        ElevatedButton(onPressed: _initCamera, child: const Text('Retry')),
+        ElevatedButton(onPressed: _begin, child: const Text('Retry')),
       ],
     );
   }

@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import '../config.dart';
 import '../models/attendance_notification.dart';
 import '../models/attendance_record.dart';
+import '../models/consent.dart';
 import '../models/face_enroll_result.dart';
 import '../models/lecturer_profile.dart';
 import '../models/login_result.dart';
@@ -69,6 +70,41 @@ class ApiClient {
 
     try {
       response = await http.patch(
+        Uri.parse('$apiBaseUrl$path'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(body),
+      );
+    } catch (_) {
+      throw ApiException(0, 'Could not reach the backend API.');
+    }
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode >= 400) {
+      throw ApiException(
+        response.statusCode,
+        data is Map && data['detail'] != null
+            ? data['detail'].toString()
+            : 'Request failed',
+      );
+    }
+
+    return parse(data);
+  }
+
+  Future<T> _post<T>(
+    String path,
+    String token,
+    Map<String, dynamic> body,
+    T Function(dynamic) parse,
+  ) async {
+    late http.Response response;
+
+    try {
+      response = await http.post(
         Uri.parse('$apiBaseUrl$path'),
         headers: {
           'Authorization': 'Bearer $token',
@@ -250,6 +286,37 @@ class ApiClient {
       token,
       const {},
       (data) => Unit.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  /// The consent notice plus this student's status against it.
+  Future<ConsentInfo> getConsent(String token) {
+    return _get(
+      '/me/consent',
+      token,
+      (data) => ConsentInfo.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  /// Records consent against a specific [noticeVersion] — the backend
+  /// answers 409 if that's no longer the current one, so a student is
+  /// never recorded as agreeing to text they didn't see.
+  Future<ConsentStatus> grantConsent(String noticeVersion, String token) {
+    return _post(
+      '/me/consent',
+      token,
+      {'notice_version': noticeVersion},
+      (data) => ConsentStatus.fromJson(data as Map<String, dynamic>),
+    );
+  }
+
+  /// Withdraws consent AND deletes the stored face template.
+  Future<ConsentWithdrawResult> withdrawConsent(String token) {
+    return _post(
+      '/me/consent/withdraw',
+      token,
+      const {},
+      (data) => ConsentWithdrawResult.fromJson(data as Map<String, dynamic>),
     );
   }
 
